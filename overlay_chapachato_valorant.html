@@ -11,6 +11,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Teko:wght@700&display=swap" rel="stylesheet">
 
     <style>
+        :root {
+            --event-color: #00d2ff;
+            --event-glow: rgba(0, 210, 255, 0.45);
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -39,11 +44,21 @@
             padding: 0 25px;
             overflow: visible;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(22, 101, 216, 0.2);
-            will-change: transform;
+            will-change: transform, border-color, box-shadow;
             backface-visibility: hidden;
             -webkit-font-smoothing: antialiased;
             transform: translateZ(0);
             animation: overlayFloat 2.8s ease-in-out infinite alternate;
+            transition: border-color 0.4s ease, box-shadow 0.4s ease;
+        }
+
+        /* Destaque dinâmico no container inteiro durante um evento */
+        .overlay-container.event-active {
+            border-color: var(--event-color);
+            box-shadow:
+                0 12px 35px rgba(0, 0, 0, 0.9),
+                0 0 24px var(--event-glow),
+                inset 0 0 18px var(--event-glow);
         }
 
         @keyframes overlayFloat {
@@ -65,6 +80,45 @@
             z-index: 1;
             overflow: hidden;
             border-radius: 2px;
+        }
+
+        /* Brilho de fundo temático que acende suavemente durante o alerta */
+        .event-bg-tint {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 28% 50%, var(--event-glow) 0%, transparent 68%);
+            opacity: 0;
+            z-index: 1;
+            pointer-events: none;
+            transition: opacity 0.45s ease;
+        }
+
+        .overlay-container.event-active .event-bg-tint {
+            opacity: 0.75;
+        }
+
+        /* Barra de tempo sutil na base do overlay */
+        .event-timer-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            width: 100%;
+            background: var(--event-color);
+            box-shadow: 0 0 10px var(--event-color);
+            transform-origin: left center;
+            transform: scaleX(0);
+            z-index: 6;
+            pointer-events: none;
+        }
+
+        .event-timer-bar.running {
+            animation: shrinkTimer 5s linear forwards;
+        }
+
+        @keyframes shrinkTimer {
+            0% { transform: scaleX(1); }
+            100% { transform: scaleX(0); }
         }
 
         .rank-top-badge {
@@ -245,6 +299,17 @@
             transform: skewX(-25deg);
             z-index: 3;
             animation: sweepWithPause 5s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        /* Flash instantâneo disparado na chegada de um evento */
+        .shine-sweep.instant-flash {
+            animation: instantFlashSweep 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        @keyframes instantFlashSweep {
+            0% { left: -120%; }
+            100% { left: 220%; }
         }
 
         @keyframes sweepWithPause {
@@ -253,42 +318,137 @@
             100% { left: 250%; }
         }
 
+        /* =========================================================
+           ÁREA CENTRAL: LOGO PRINCIPAL VS ALERTA COM IMPACTO ELÁSTICO
+           ========================================================= */
         .logo-wrapper {
             position: relative;
             z-index: 5;
-            display: inline-block;
+            display: flex;
+            align-items: center;
+            min-width: 360px;
+            height: 82px;
             transform-origin: 50% 50%;
             animation: logoFloatCentral 3s ease-in-out infinite alternate;
         }
 
         .logo-text {
+            position: absolute;
+            left: 0;
             font-family: 'Permanent Marker', cursive;
             font-size: 50px;
             color: #ffffff;
             text-transform: uppercase;
             letter-spacing: 2px;
             line-height: 1;
+            white-space: nowrap;
             text-shadow: 
                 3px 3px 0px #0e52b6,
                 -2px -2px 0px #000,
                 2px -2px 0px #000,
                 -2px 2px 0px #000,
                 0px 5px 15px rgba(0, 210, 255, 0.6);
-            display: inline-block;
+            transition: opacity 0.38s ease, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), filter 0.38s ease;
+        }
+
+        .logo-text.visible {
+            opacity: 1;
+            transform: translate3d(0, 0, 0) scale(1);
+            filter: blur(0px);
+            pointer-events: auto;
+        }
+
+        .logo-text.hidden {
+            opacity: 0;
+            transform: translate3d(-18px, 0, 0) scale(0.9);
+            filter: blur(5px);
+            pointer-events: none;
+        }
+
+        /* Caixa de Alerta com Selo Inclinado + Nome */
+        .event-alert-box {
+            position: absolute;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 4px;
+            opacity: 0;
+            transform: translate3d(26px, 0, 0) scale(0.88);
+            filter: blur(4px);
+            pointer-events: none;
+            transition:
+                opacity 0.35s ease,
+                transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1),
+                filter 0.35s ease;
+        }
+
+        .event-alert-box.visible {
+            opacity: 1;
+            transform: translate3d(0, 0, 0) scale(1);
+            filter: blur(0px);
+        }
+
+        .event-alert-box.hidden {
+            opacity: 0;
+            transform: translate3d(-22px, 0, 0) scale(0.92);
+            filter: blur(4px);
+        }
+
+        /* Selo estilo "Street Tag" inclinado com a cor do evento */
+        .event-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(13, 16, 23, 0.92);
+            border: 1.5px solid var(--event-color);
+            box-shadow: -3px 3px 0px var(--event-color), 0 0 12px var(--event-glow);
+            padding: 2px 12px;
+            transform: skewX(-12deg);
+        }
+
+        .event-type-label {
+            transform: skewX(12deg);
+            font-family: 'Teko', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 1.8px;
+            text-transform: uppercase;
+            line-height: 1.1;
+            color: var(--event-color);
+            text-shadow: 0 0 8px var(--event-glow);
+            white-space: nowrap;
+        }
+
+        .event-user-name {
+            font-family: 'Permanent Marker', cursive;
+            font-size: 36px;
+            color: #ffffff;
+            text-transform: uppercase;
+            line-height: 1.05;
+            letter-spacing: 1.5px;
+            max-width: 360px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            text-shadow:
+                3px 3px 0px #090a0d,
+                -2px -2px 0px #000,
+                2px -2px 0px #000,
+                -2px 2px 0px #000,
+                0px 4px 16px var(--event-glow);
         }
 
         @keyframes logoFloatCentral {
             0% {
-                transform: translateY(0px) rotate(-2deg);
-                filter: drop-shadow(0 0 4px rgba(0, 210, 255, 0.3));
+                transform: translateY(0px) rotate(-1.5deg);
             }
             50% {
-                transform: translateY(-5px) rotate(0deg);
-                filter: drop-shadow(0 0 10px rgba(0, 210, 255, 0.6));
+                transform: translateY(-4px) rotate(0deg);
             }
             100% {
-                transform: translateY(3px) rotate(2deg);
-                filter: drop-shadow(0 0 4px rgba(0, 210, 255, 0.3));
+                transform: translateY(3px) rotate(1.5deg);
             }
         }
 
@@ -351,7 +511,7 @@
 </head>
 <body>
 
-    <div class="overlay-container">
+    <div class="overlay-container" id="overlay-container">
         <!-- TOP LEFT ELO & W/L BADGE (DINÂMICO) -->
         <div class="rank-top-badge">
             <div class="rank-top-content">
@@ -368,8 +528,9 @@
             </div>
         </div>
 
-        <!-- Street Background Texture -->
+        <!-- Street Background Texture + Brilho Temático de Evento -->
         <div class="street-bg"></div>
+        <div class="event-bg-tint"></div>
 
         <!-- Animated SVG Graffiti Doodles -->
         <div class="doodle-layer">
@@ -388,11 +549,18 @@
         </div>
 
         <!-- White Shine Sweep Effect -->
-        <div class="shine-sweep"></div>
+        <div class="shine-sweep" id="shine-sweep"></div>
 
-        <!-- CHAPA CHATO Brand Title -->
+        <!-- CHAPA CHATO Brand Title + Alertas Dinâmicos -->
         <div class="logo-wrapper">
-            <span class="logo-text">CHAPA CHATO</span>
+            <span class="logo-text visible" id="main-logo-text">CHAPA CHATO</span>
+
+            <div class="event-alert-box hidden" id="event-alert-box">
+                <div class="event-pill">
+                    <span class="event-type-label" id="event-type-label">★ NOVO FOLLOW</span>
+                </div>
+                <span class="event-user-name" id="event-user-name">USUARIO</span>
+            </div>
         </div>
 
         <!-- Social Handle Badge -->
@@ -409,50 +577,53 @@
                 <span class="social-handle">@enzo_stevanatto</span>
             </div>
         </div>
+
+        <!-- Barra de progresso do alerta -->
+        <div class="event-timer-bar" id="event-timer-bar"></div>
     </div>
 
     <script>
-        // Mapeamento dos ícones da Wiki (também serve como lista oficial de ranks válidos)
+        // =========================================================
+        // 1. RANK & ESTATÍSTICAS DO VALORANT
+        // =========================================================
         const TIER_UUID = "03621f52-342b-cf4e-4f86-9350a49c6d04";
 
-		const rankImages = {
-			"Radiant": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/27/smallicon.png`,
-			"Immortal 3": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/26/smallicon.png`,
-			"Immortal 2": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/25/smallicon.png`,
-			"Immortal 1": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/24/smallicon.png`,
-			"Ascendant 3": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/23/smallicon.png`,
-			"Ascendant 2": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/22/smallicon.png`,
-			"Ascendant 1": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/21/smallicon.png`,
-			"Diamond 3": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/20/smallicon.png`,
-			"Diamond 2": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/19/smallicon.png`,
-			"Diamond 1": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/18/smallicon.png`,
-			"Platinum 3": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/17/smallicon.png`,
-			"Platinum 2": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/16/smallicon.png`,
-			"Platinum 1": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/15/smallicon.png`,
-			"Gold 3": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/14/smallicon.png`,
-			"Gold 2": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/13/smallicon.png`,
-			"Gold 1": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/12/smallicon.png`,
-			"Silver 3": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/11/smallicon.png`,
-			"Silver 2": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/10/smallicon.png`,
-			"Silver 1": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/9/smallicon.png`,
-			"Bronze 3": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/8/smallicon.png`,
-			"Bronze 2": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/7/smallicon.png`,
-			"Bronze 1": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/6/smallicon.png`,
-			"Iron 3": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/5/smallicon.png`,
-			"Iron 2": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/4/smallicon.png`,
-			"Iron 1": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/3/smallicon.png`,
-			"Unranked": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/0/smallicon.png`
-		};
+        const rankImages = {
+            "Radiant": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/27/smallicon.png`,
+            "Immortal 3": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/26/smallicon.png`,
+            "Immortal 2": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/25/smallicon.png`,
+            "Immortal 1": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/24/smallicon.png`,
+            "Ascendant 3": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/23/smallicon.png`,
+            "Ascendant 2": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/22/smallicon.png`,
+            "Ascendant 1": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/21/smallicon.png`,
+            "Diamond 3": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/20/smallicon.png`,
+            "Diamond 2": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/19/smallicon.png`,
+            "Diamond 1": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/18/smallicon.png`,
+            "Platinum 3": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/17/smallicon.png`,
+            "Platinum 2": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/16/smallicon.png`,
+            "Platinum 1": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/15/smallicon.png`,
+            "Gold 3": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/14/smallicon.png`,
+            "Gold 2": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/13/smallicon.png`,
+            "Gold 1": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/12/smallicon.png`,
+            "Silver 3": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/11/smallicon.png`,
+            "Silver 2": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/10/smallicon.png`,
+            "Silver 1": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/9/smallicon.png`,
+            "Bronze 3": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/8/smallicon.png`,
+            "Bronze 2": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/7/smallicon.png`,
+            "Bronze 1": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/6/smallicon.png`,
+            "Iron 3": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/5/smallicon.png`,
+            "Iron 2": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/4/smallicon.png`,
+            "Iron 1": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/3/smallicon.png`,
+            "Unranked": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/0/smallicon.png`
+        };
 
         const GAME_ENDPOINT = 'https://decapi.me/twitch/game/chapachato';
         const MMR_ENDPOINT = 'https://vaccie.pythonanywhere.com/mmr/chapachato/Sem/na';
         const HISTORY_ENDPOINT = 'https://vaccie.pythonanywhere.com/match_history/chapachato/Sem/na/pc';
 
-        // Função auxiliar para extrair um elo válido do texto da API (retorna null se for erro ou lixo)
         function extrairRankValido(texto) {
             if (!texto || typeof texto !== 'string') return null;
             const partePrincipal = texto.split(',')[0].replace(/#\d+/, '').trim().toLowerCase();
-            
             for (const rankOficial of Object.keys(rankImages)) {
                 if (partePrincipal === rankOficial.toLowerCase()) {
                     return rankOficial;
@@ -461,14 +632,12 @@
             return null;
         }
 
-        // Função auxiliar para aplicar o elo no DOM com fallback garantido para Immortal 1
         function aplicarRankNaTela(rankName) {
             const rankFinal = (rankName && rankImages[rankName]) ? rankName : "Immortal 1";
             document.getElementById('rank-title-text').textContent = rankFinal.toUpperCase();
             document.getElementById('rank-icon-img').src = rankImages[rankFinal];
         }
 
-        // Lista de Proxies CORS públicos gratuitos
         const CORS_PROXIES = [
             {
                 nome: "Worker ao3ffee (JSONP/JSON)",
@@ -560,11 +729,6 @@
 
         let ultimoProxyFuncional = 0;
 
-        /**
-         * Busca um endpoint através dos proxies e valida o conteúdo com `validatorFn`.
-         * Se o proxy retornar erro HTTP (como 429) OU um texto inválido/erro mascarado com HTTP 200,
-         * ele descarta e pula imediatamente para o próximo proxy.
-         */
         async function fetchComFallback(targetUrl, validatorFn) {
             const sep = targetUrl.includes('?') ? '&' : '?';
             const urlSemCache = `${targetUrl}${sep}_t=${Date.now()}`;
@@ -586,32 +750,26 @@
                         cache: 'no-store'
                     });
 
-                    // Trata 429 (Too Many Requests) e qualquer outro status fora de 200-299
-                    if (!res.ok) {
-                        throw new Error(`HTTP ${res.status}`);
-                    }
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
                     const rawText = await res.text();
                     const cleanText = proxy.extract(rawText).trim();
 
-                    // Rejeita HTML ou mensagens comuns de erro/rate-limit mascaradas de HTTP 200
                     if (
                         !cleanText ||
                         cleanText.startsWith('<!DOCTYPE') ||
                         cleanText.startsWith('<html') ||
-                        cleanText.startsWith('{') || // API do vaccie retorna texto puro, não JSON
+                        cleanText.startsWith('{') ||
                         /too many requests|rate limit|error|blocked|forbidden|429/i.test(cleanText)
                     ) {
                         throw new Error(`Resposta inválida/erro no corpo: "${cleanText.slice(0, 60)}"`);
                     }
 
-                    // Validação específica do formato esperado (MMR ou Histórico)
                     if (validatorFn && !validatorFn(cleanText)) {
                         throw new Error(`Formato inesperado: "${cleanText.slice(0, 60)}"`);
                     }
 
                     ultimoProxyFuncional = CORS_PROXIES.findIndex(p => p.nome === proxy.nome);
-                    console.log(`[Proxy OK: ${proxy.nome}] ->`, cleanText);
                     return cleanText;
 
                 } catch (erro) {
@@ -632,7 +790,6 @@
             verificacaoEmAndamento = true;
 
             try {
-                // 1. Consultar o jogo atual da live (DecAPI não precisa de CORS)
                 const gameRes = await fetch(`${GAME_ENDPOINT}?_t=${Date.now()}`, { cache: 'no-store' });
                 if (!gameRes.ok) throw new Error(`DecAPI HTTP ${gameRes.status}`);
 
@@ -640,25 +797,19 @@
                 const isValorant = gameName === 'VALORANT';
 
                 rankBadge.style.display = isValorant ? 'flex' : 'none';
-                console.log('[OBS] Jogo atual:', gameName, '| Rank visível:', isValorant);
-
                 if (!isValorant) return;
 
-                // 2. Atualizar Elo e título (com validação estrita e fallback para Immortal 1)
                 try {
                     const rawText = await fetchComFallback(
                         MMR_ENDPOINT,
                         (texto) => extrairRankValido(texto) !== null
                     );
-
-                    const rankValido = extrairRankValido(rawText);
-                    aplicarRankNaTela(rankValido);
+                    aplicarRankNaTela(extrairRankValido(rawText));
                 } catch (err) {
                     console.warn('Falha ao obter MMR válido. Aplicando fallback Immortal 1:', err.message);
                     aplicarRankNaTela("Immortal 1");
                 }
 
-                // 3. Atualizar vitórias, derrotas e win rate
                 try {
                     const rawHistory = await fetchComFallback(
                         HISTORY_ENDPOINT,
@@ -684,9 +835,213 @@
             }
         }
 
-        // Verifica imediatamente ao carregar e depois a cada 60 segundos.
         updateOverlayData();
         setInterval(updateOverlayData, 60000);
+
+        // =========================================================
+        // 2. SISTEMA DE EVENTOS COM REAÇÃO DE BORDA, FLASH E SELO
+        // =========================================================
+        const urlParams = new URLSearchParams(window.location.search);
+        const STREAMELEMENTS_JWT_TOKEN = urlParams.get("jwt") || "";
+
+        // Paleta dinâmica por tipo de evento
+        const EVENT_THEMES = {
+            follow: { color: "#00d2ff", glow: "rgba(0, 210, 255, 0.45)" },
+            sub:    { color: "#f5cf42", glow: "rgba(245, 207, 66, 0.5)" },
+            gift:   { color: "#ffb703", glow: "rgba(255, 183, 3, 0.5)" },
+            raid:   { color: "#ff4b2b", glow: "rgba(255, 75, 43, 0.55)" },
+            bits:   { color: "#a855f7", glow: "rgba(168, 85, 247, 0.5)" },
+            tip:    { color: "#38ef7d", glow: "rgba(56, 239, 125, 0.5)" }
+        };
+
+        const filaEventos = [];
+        let exibindoEvento = false;
+
+        const containerEl = document.getElementById("overlay-container");
+        const shineEl = document.getElementById("shine-sweep");
+        const timerBarEl = document.getElementById("event-timer-bar");
+        const mainLogoEl = document.getElementById("main-logo-text");
+        const alertBoxEl = document.getElementById("event-alert-box");
+        const alertLabelEl = document.getElementById("event-type-label");
+        const alertUserEl = document.getElementById("event-user-name");
+
+        function dispararFlashBrilho() {
+            shineEl.classList.remove("instant-flash");
+            void shineEl.offsetWidth; // força reflow para reiniciar a animação
+            shineEl.classList.add("instant-flash");
+            setTimeout(() => {
+                shineEl.classList.remove("instant-flash");
+            }, 800);
+        }
+
+        function reiniciarBarraTempo() {
+            timerBarEl.classList.remove("running");
+            void timerBarEl.offsetWidth;
+            timerBarEl.classList.add("running");
+        }
+
+        function dispararAlerta(tipo, label, usuario) {
+            filaEventos.push({ tipo, label, usuario });
+            processarFilaEventos();
+        }
+
+        function processarFilaEventos() {
+            if (exibindoEvento || filaEventos.length === 0) return;
+
+            exibindoEvento = true;
+            const evento = filaEventos.shift();
+            const tema = EVENT_THEMES[evento.tipo] || EVENT_THEMES.follow;
+
+            // Aplica a cor temática nas variáveis CSS do overlay
+            document.documentElement.style.setProperty("--event-color", tema.color);
+            document.documentElement.style.setProperty("--event-glow", tema.glow);
+
+            alertLabelEl.textContent = evento.label;
+            alertUserEl.textContent = evento.usuario;
+
+            // Acende a borda do overlay e dispara o flash
+            containerEl.classList.add("event-active");
+            dispararFlashBrilho();
+
+            // Recua o nome principal com blur
+            mainLogoEl.classList.remove("visible");
+            mainLogoEl.classList.add("hidden");
+
+            // Entra o alerta com impacto elástico
+            setTimeout(() => {
+                alertBoxEl.classList.remove("hidden");
+                alertBoxEl.classList.add("visible");
+                reiniciarBarraTempo();
+            }, 260);
+
+            // Mantém o alerta por 5 segundos
+            setTimeout(() => {
+                alertBoxEl.classList.remove("visible");
+                alertBoxEl.classList.add("hidden");
+                timerBarEl.classList.remove("running");
+
+                setTimeout(() => {
+                    if (filaEventos.length > 0) {
+                        exibindoEvento = false;
+                        processarFilaEventos();
+                    } else {
+                        containerEl.classList.remove("event-active");
+                        mainLogoEl.classList.remove("hidden");
+                        mainLogoEl.classList.add("visible");
+                        exibindoEvento = false;
+                    }
+                }, 360);
+            }, 5000);
+        }
+
+        // =========================================================
+// CONEXÃO ANÔNIMA AO CHAT PÚBLICO DA TWITCH (SEM TOKEN)
+// Captura: Subs, Resubs, Gift Subs, Raids, Bits e Bots de Follow
+// =========================================================
+		const TWITCH_CHANNEL = "chapachato";
+
+		function parseIrcTags(tagString) {
+			const tags = {};
+			if (!tagString) return tags;
+			tagString.split(";").forEach(part => {
+				const [key, val] = part.split("=");
+				tags[key] = val ? val.replace(/\\s/g, " ") : "";
+			});
+			return tags;
+		}
+
+		function conectarTwitchChatPublico() {
+			const ws = new WebSocket("wss://irc-ws.chat.twitch.tv:443");
+
+			ws.onopen = () => {
+				console.log(`[Twitch IRC] Conectado anonimamente ao canal #${TWITCH_CHANNEL}`);
+				// Solicita tags estendidas da Twitch (onde vêm os dados de Sub, Raid e Bits)
+				ws.send("CAP REQ :twitch.tv/tags twitch.tv/commands");
+				// Login anônimo oficial da Twitch (não precisa de senha nem OAuth)
+				const randomId = Math.floor(10000 + Math.random() * 89999);
+				ws.send("PASS SCHMOOPIIE");
+				ws.send(`NICK justinfan${randomId}`);
+				ws.send(`JOIN #${TWITCH_CHANNEL.toLowerCase()}`);
+			};
+
+			ws.onmessage = (event) => {
+				const lines = event.data.split("\r\n");
+
+				for (const line of lines) {
+					if (!line) continue;
+
+					// Responde ao PING da Twitch para manter a conexão viva
+					if (line.startsWith("PING")) {
+						ws.send("PONG :tmi.twitch.tv");
+						continue;
+					}
+
+					// Separa as tags (@badge-info=...;msg-id=sub;...) do restante da linha
+					let tags = {};
+					let rest = line;
+					if (line.startsWith("@")) {
+						const spaceIdx = line.indexOf(" ");
+						tags = parseIrcTags(line.slice(1, spaceIdx));
+						rest = line.slice(spaceIdx + 1);
+					}
+
+					// 1. EVENTOS NATIVOS DA TWITCH (SUB, RESUB, GIFT SUB, RAID)
+					if (rest.includes(" USERNOTICE ")) {
+						const msgId = tags["msg-id"];
+						const displayName = tags["display-name"] || tags["login"] || "Alguém";
+
+						if (msgId === "sub") {
+							dispararAlerta("sub", "★ NOVO SUB", displayName);
+						} else if (msgId === "resub") {
+							const meses = tags["msg-param-cumulative-months"] || 1;
+							dispararAlerta("sub", `★ RESUB • ${meses} MESES`, displayName);
+						} else if (msgId === "subgift") {
+							const destinatario = tags["msg-param-recipient-display-name"] || "um viewer";
+							dispararAlerta("gift", `🎁 DEU SUB P/ ${destinatario}`, displayName);
+						} else if (msgId === "submysterygift") {
+							const qtd = tags["msg-param-mass-gift-count"] || 1;
+							dispararAlerta("gift", `🎁 PRESENTEOU ${qtd} SUBS`, displayName);
+						} else if (msgId === "raid") {
+							const viewers = tags["msg-param-viewerCount"] || 0;
+							dispararAlerta("raid", `⚡ RAID • ${viewers} VIEWERS`, displayName);
+						}
+					}
+
+					// 2. BITS / CHEER E MENSAGENS DE BOT DE FOLLOW NO CHAT
+					if (rest.includes(" PRIVMSG ")) {
+						const displayName = tags["display-name"] || "Viewer";
+
+						// Se a mensagem contém Bits
+						if (tags["bits"]) {
+							const bitsAmount = parseInt(tags["bits"], 10);
+							if (bitsAmount > 0) {
+								dispararAlerta("bits", `💎 ENVIOU ${bitsAmount} BITS`, displayName);
+							}
+						}
+
+						// Opcional: Captura aviso de Follow caso algum bot (StreamElements, Nightbot, etc.) anuncie no chat
+						const botUser = (tags["login"] || displayName).toLowerCase();
+						if (["streamelements", "nightbot", "fossabot", "streamlabs"].includes(botUser)) {
+							const msgMatch = rest.match(/PRIVMSG #\w+ :(.+)/);
+							const textoChat = msgMatch ? msgMatch[1] : "";
+							// Exemplo: "Obrigado pelo follow, Fulano!" ou "Fulano acabou de seguir!"
+							const followMatch = textoChat.match(/(?:follow(?:ing)?|seguir|seguiu)[,\s:!]+@?([a-zA-Z0-9_]{3,25})/i)
+											 || textoChat.match(/@?([a-zA-Z0-9_]{3,25})\s+(?:acabou de seguir|just followed)/i);
+							if (followMatch && followMatch[1]) {
+								dispararAlerta("follow", "★ NOVO FOLLOW", followMatch[1]);
+							}
+						}
+					}
+				}
+			};
+
+			ws.onclose = () => {
+				console.warn("[Twitch IRC] Conexão encerrada. Reconectando em 5s...");
+				setTimeout(conectarTwitchChatPublico, 5000);
+			};
+		}
+
+		conectarTwitchChatPublico();
     </script>
 </body>
 </html>
