@@ -412,7 +412,7 @@
     </div>
 
     <script>
-        // Mapeamento dos ícones da Wiki
+        // Mapeamento dos ícones da Wiki (também serve como lista oficial de ranks válidos)
         const rankImages = {
             "Radiant": "https://static.wikia.nocookie.net/valorant/images/1/1a/Radiant_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203621",
             "Immortal 3": "https://static.wikia.nocookie.net/valorant/images/0/0b/Immortal_3_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203617",
@@ -446,17 +446,36 @@
         const MMR_ENDPOINT = 'https://vaccie.pythonanywhere.com/mmr/chapachato/Sem/na';
         const HISTORY_ENDPOINT = 'https://vaccie.pythonanywhere.com/match_history/chapachato/Sem/na/pc';
 
-        // Lista completa de Proxies CORS públicos gratuitos (sem necessidade de cadastro/API key)
-        // Cada item possui um nome, o construtor da URL e o extrator do texto limpo
+        // Função auxiliar para extrair um elo válido do texto da API (retorna null se for erro ou lixo)
+        function extrairRankValido(texto) {
+            if (!texto || typeof texto !== 'string') return null;
+            const partePrincipal = texto.split(',')[0].replace(/#\d+/, '').trim().toLowerCase();
+            
+            for (const rankOficial of Object.keys(rankImages)) {
+                if (partePrincipal === rankOficial.toLowerCase()) {
+                    return rankOficial;
+                }
+            }
+            return null;
+        }
+
+        // Função auxiliar para aplicar o elo no DOM com fallback garantido para Immortal 1
+        function aplicarRankNaTela(rankName) {
+            const rankFinal = (rankName && rankImages[rankName]) ? rankName : "Immortal 1";
+            document.getElementById('rank-title-text').textContent = rankFinal.toUpperCase();
+            document.getElementById('rank-icon-img').src = rankImages[rankFinal];
+        }
+
+        // Lista de Proxies CORS públicos gratuitos
         const CORS_PROXIES = [
             {
                 nome: "Worker ao3ffee (JSONP/JSON)",
                 buildUrl: (target) => `https://wild-bonus-e3a8.ao3ffee.workers.dev/?callback=cb&url=${encodeURIComponent(target)}`,
                 extract: (raw) => {
-                    // Extrai o JSON de dentro de cb({"data":"..."})
                     const match = raw.match(/^cb\((.*)\);?$/s);
                     if (match) {
                         const parsed = JSON.parse(match[1]);
+                        if (parsed.error) throw new Error(parsed.error);
                         return parsed.data || parsed.contents || String(parsed);
                     }
                     return raw;
@@ -537,15 +556,17 @@
             }
         ];
 
-        // Guarda o índice do último proxy que funcionou para priorizá-lo na próxima rodada
         let ultimoProxyFuncional = 0;
 
-        async function fetchComFallback(targetUrl) {
-            // Adiciona um timestamp para evitar que o proxy entregue cache velho
+        /**
+         * Busca um endpoint através dos proxies e valida o conteúdo com `validatorFn`.
+         * Se o proxy retornar erro HTTP (como 429) OU um texto inválido/erro mascarado com HTTP 200,
+         * ele descarta e pula imediatamente para o próximo proxy.
+         */
+        async function fetchComFallback(targetUrl, validatorFn) {
             const sep = targetUrl.includes('?') ? '&' : '?';
             const urlSemCache = `${targetUrl}${sep}_t=${Date.now()}`;
 
-            // Reordena a lista colocando o último proxy que funcionou em primeiro lugar
             const ordemTentativas = [
                 ...CORS_PROXIES.slice(ultimoProxyFuncional),
                 ...CORS_PROXIES.slice(0, ultimoProxyFuncional)
@@ -554,7 +575,7 @@
             for (let i = 0; i < ordemTentativas.length; i++) {
                 const proxy = ordemTentativas[i];
                 const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 8000); // 8s por tentativa
+                const timeout = setTimeout(() => controller.abort(), 8000);
 
                 try {
                     const proxyUrl = proxy.buildUrl(urlSemCache);
@@ -563,6 +584,7 @@
                         cache: 'no-store'
                     });
 
+                    // Trata 429 (Too Many Requests) e qualquer outro status fora de 200-299
                     if (!res.ok) {
                         throw new Error(`HTTP ${res.status}`);
                     }
@@ -570,12 +592,22 @@
                     const rawText = await res.text();
                     const cleanText = proxy.extract(rawText).trim();
 
-                    // Validação básica: garante que não veio vazio nem uma página HTML de erro do proxy
-                    if (!cleanText || cleanText.startsWith('<!DOCTYPE') || cleanText.startsWith('<html')) {
-                        throw new Error('Resposta HTML inválida do proxy');
+                    // Rejeita HTML ou mensagens comuns de erro/rate-limit mascaradas de HTTP 200
+                    if (
+                        !cleanText ||
+                        cleanText.startsWith('<!DOCTYPE') ||
+                        cleanText.startsWith('<html') ||
+                        cleanText.startsWith('{') || // API do vaccie retorna texto puro, não JSON
+                        /too many requests|rate limit|error|blocked|forbidden|429/i.test(cleanText)
+                    ) {
+                        throw new Error(`Resposta inválida/erro no corpo: "${cleanText.slice(0, 60)}"`);
                     }
 
-                    // Salva o índice original deste proxy como preferencial
+                    // Validação específica do formato esperado (MMR ou Histórico)
+                    if (validatorFn && !validatorFn(cleanText)) {
+                        throw new Error(`Formato inesperado: "${cleanText.slice(0, 60)}"`);
+                    }
+
                     ultimoProxyFuncional = CORS_PROXIES.findIndex(p => p.nome === proxy.nome);
                     console.log(`[Proxy OK: ${proxy.nome}] ->`, cleanText);
                     return cleanText;
@@ -610,25 +642,27 @@
 
                 if (!isValorant) return;
 
-                // 2. Atualizar Elo e título usando fallback de proxies CORS
+                // 2. Atualizar Elo e título (com validação estrita e fallback para Immortal 1)
                 try {
-                    const rawText = await fetchComFallback(MMR_ENDPOINT);
-                    const parts = rawText.split(',');
-                    const rankNameClean = parts[0].replace(/#\d+/, '').trim();
+                    const rawText = await fetchComFallback(
+                        MMR_ENDPOINT,
+                        (texto) => extrairRankValido(texto) !== null
+                    );
 
-                    if (rankNameClean) {
-                        document.getElementById('rank-title-text').textContent = rankNameClean.toUpperCase();
-                        if (rankImages[rankNameClean]) {
-                            document.getElementById('rank-icon-img').src = rankImages[rankNameClean];
-                        }
-                    }
+                    const rankValido = extrairRankValido(rawText);
+                    aplicarRankNaTela(rankValido);
                 } catch (err) {
-                    console.warn('Erro ao buscar MMR:', err.message);
+                    console.warn('Falha ao obter MMR válido. Aplicando fallback Immortal 1:', err.message);
+                    aplicarRankNaTela("Immortal 1");
                 }
 
-                // 3. Atualizar vitórias, derrotas e win rate usando fallback de proxies CORS
+                // 3. Atualizar vitórias, derrotas e win rate
                 try {
-                    const rawHistory = await fetchComFallback(HISTORY_ENDPOINT);
+                    const rawHistory = await fetchComFallback(
+                        HISTORY_ENDPOINT,
+                        (texto) => /(\d+)W/i.test(texto) && /(\d+)L/i.test(texto)
+                    );
+
                     const winsMatch = rawHistory.match(/(\d+)W/i);
                     const lossesMatch = rawHistory.match(/(\d+)L/i);
                     const wrMatch = rawHistory.match(/([\d.]+)%\s*WR/i);
