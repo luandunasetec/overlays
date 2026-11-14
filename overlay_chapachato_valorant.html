@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stream Overlay - CHAPA</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Teko:wght@700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: transparent;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Teko', sans-serif;
+            overflow: hidden;
+        }
+
+        .overlay-container {
+            position: relative;
+            width: 720px;
+            height: 120px;
+            background: #0d0e12;
+            border: 2px solid #1a2234;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 25px;
+            overflow: visible;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(22, 101, 216, 0.2);
+            will-change: transform;
+            backface-visibility: hidden;
+            -webkit-font-smoothing: antialiased;
+            transform: translateZ(0);
+            animation: overlayFloat 2.8s ease-in-out infinite alternate;
+        }
+
+        @keyframes overlayFloat {
+            0% { transform: translate3d(0, 0px, 0) scale(1); }
+            100% { transform: translate3d(0, -3px, 0) scale(1.002); }
+        }
+
+        .street-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(22, 101, 216, 0.35) 0%, transparent 60%),
+                radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.05) 0%, transparent 40%),
+                linear-gradient(45deg, #090a0d 25%, #121620 25%, #121620 50%, #090a0d 50%, #090a0d 75%, #121620 75%, #121620 100%);
+            background-size: 100% 100%, 100% 100%, 12px 12px;
+            z-index: 1;
+            overflow: hidden;
+            border-radius: 2px;
+        }
+
+        .rank-top-badge {
+            position: absolute;
+            top: -18px;
+            left: 35px;
+            z-index: 10;
+            background: linear-gradient(135deg, #181c26 0%, #0d1017 100%);
+            border: 2px solid #f5cf42;
+            padding: 4px 18px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            border-radius: 4px;
+            box-shadow: 0 -4px 15px rgba(245, 207, 66, 0.25), 0 6px 15px rgba(0, 0, 0, 0.8);
+            animation: rankGlowPulse 2.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes rankGlowPulse {
+            0% {
+                border-color: #f5cf42;
+                box-shadow: 0 -2px 10px rgba(245, 207, 66, 0.2), 0 4px 12px rgba(0, 0, 0, 0.8);
+            }
+            100% {
+                border-color: #ffffff;
+                box-shadow: 0 -4px 18px rgba(245, 207, 66, 0.5), 0 6px 16px rgba(0, 0, 0, 0.9);
+            }
+        }
+
+        .rank-top-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .rank-icon {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 5px rgba(245, 207, 66, 0.8));
+        }
+
+        .rank-title {
+            font-family: 'Teko', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: #f5cf42;
+            letter-spacing: 1.5px;
+            line-height: 1;
+            text-transform: uppercase;
+        }
+
+        .rank-divider {
+            width: 2px;
+            height: 16px;
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .rank-stats {
+            font-family: 'Teko', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: 1px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .rank-wins { color: #38ef7d; }
+        .rank-losses { color: #ff4b2b; }
+        .stat-sep { color: rgba(255, 255, 255, 0.3); font-weight: 400; }
+        .rank-wr { color: #8b9bb4; font-weight: 700; margin-left: 2px; }
+
+        .doodle-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .doodle-crown {
+            position: absolute;
+            top: 8px;
+            left: 210px;
+            width: 30px;
+            height: 30px;
+            stroke: #00d2ff;
+            fill: none;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            animation: floatDoodle 3s ease-in-out infinite alternate, glowPulse 2s infinite alternate;
+        }
+
+        .doodle-crosshair {
+            position: absolute;
+            bottom: 12px;
+            left: 20px;
+            width: 28px;
+            height: 28px;
+            stroke: rgba(255, 255, 255, 0.4);
+            fill: none;
+            stroke-width: 2;
+            animation: spinDoodle 12s linear infinite;
+        }
+
+        .doodle-arrow {
+            position: absolute;
+            top: 45px;
+            left: 310px;
+            width: 45px;
+            height: 25px;
+            stroke: #00d2ff;
+            fill: none;
+            stroke-width: 3;
+            stroke-dasharray: 100;
+            animation: dashDraw 2.5s ease-in-out infinite;
+        }
+
+        .doodle-tag {
+            position: absolute;
+            bottom: 8px;
+            right: 280px;
+            font-family: 'Permanent Marker', cursive;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.35);
+            transform: rotate(-5deg);
+            animation: flickerTag 4s infinite;
+        }
+
+        @keyframes floatDoodle {
+            0% { transform: translateY(0px) rotate(-3deg); }
+            100% { transform: translateY(-5px) rotate(5deg); }
+        }
+
+        @keyframes glowPulse {
+            0% { filter: drop-shadow(0 0 2px #00d2ff); }
+            100% { filter: drop-shadow(0 0 8px #00d2ff); }
+        }
+
+        @keyframes spinDoodle {
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes dashDraw {
+            0% { stroke-dashoffset: 100; opacity: 0.2; }
+            50% { stroke-dashoffset: 0; opacity: 1; }
+            100% { stroke-dashoffset: -100; opacity: 0.2; }
+        }
+
+        @keyframes flickerTag {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.7; }
+            52% { opacity: 0.2; }
+            54% { opacity: 0.8; }
+        }
+
+        .shine-sweep {
+            position: absolute;
+            top: 0;
+            left: -150%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(
+                90deg, 
+                transparent 0%, 
+                rgba(255, 255, 255, 0.05) 30%, 
+                rgba(255, 255, 255, 0.75) 50%, 
+                rgba(255, 255, 255, 0.05) 70%, 
+                transparent 100%
+            );
+            transform: skewX(-25deg);
+            z-index: 3;
+            animation: sweepWithPause 5s ease-in-out infinite;
+        }
+
+        @keyframes sweepWithPause {
+            0% { left: -150%; }
+            30% { left: 250%; }
+            100% { left: 250%; }
+        }
+
+        .logo-wrapper {
+            position: relative;
+            z-index: 5;
+            display: inline-block;
+            transform-origin: 50% 50%;
+            animation: logoFloatCentral 3s ease-in-out infinite alternate;
+        }
+
+        .logo-text {
+            font-family: 'Permanent Marker', cursive;
+            font-size: 50px;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            line-height: 1;
+            text-shadow: 
+                3px 3px 0px #0e52b6,
+                -2px -2px 0px #000,
+                2px -2px 0px #000,
+                -2px 2px 0px #000,
+                0px 5px 15px rgba(0, 210, 255, 0.6);
+            display: inline-block;
+        }
+
+        @keyframes logoFloatCentral {
+            0% {
+                transform: translateY(0px) rotate(-2deg);
+                filter: drop-shadow(0 0 4px rgba(0, 210, 255, 0.3));
+            }
+            50% {
+                transform: translateY(-5px) rotate(0deg);
+                filter: drop-shadow(0 0 10px rgba(0, 210, 255, 0.6));
+            }
+            100% {
+                transform: translateY(3px) rotate(2deg);
+                filter: drop-shadow(0 0 4px rgba(0, 210, 255, 0.3));
+            }
+        }
+
+        .social-badge {
+            position: relative;
+            z-index: 5;
+            background: linear-gradient(135deg, #105bd8 0%, #08327a 100%);
+            border: 2px solid #00d2ff;
+            padding: 6px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transform: skewX(-12deg);
+            box-shadow: -4px 4px 15px rgba(0, 0, 0, 0.5), inset 0 0 8px rgba(255, 255, 255, 0.2);
+            animation: badgePulse 2s ease-in-out infinite alternate;
+        }
+
+        .social-badge-content {
+            transform: skewX(-12deg);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .social-icons {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .social-icons svg {
+            width: 18px;
+            height: 18px;
+            fill: #ffffff;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+        }
+
+        .social-handle {
+            font-family: 'Teko', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            line-height: 1;
+            text-shadow: 1px 2px 4px rgba(0,0,0,0.6);
+        }
+
+        @keyframes badgePulse {
+            0% { 
+                border-color: #00d2ff; 
+                box-shadow: -4px 4px 15px rgba(0, 0, 0, 0.5), 0 0 5px rgba(0, 210, 255, 0.2); 
+            }
+            100% { 
+                border-color: #ffffff; 
+                box-shadow: -4px 4px 15px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 210, 255, 0.6); 
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="overlay-container">
+        <!-- TOP LEFT ELO & W/L BADGE (DINÂMICO) -->
+        <div class="rank-top-badge">
+            <div class="rank-top-content">
+                <img class="rank-icon" id="rank-icon-img" src="https://static.wikia.nocookie.net/valorant/images/a/a8/Immortal_1_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203613" alt="Rank Icon">
+                <span class="rank-title" id="rank-title-text">IMMORTAL 1</span>
+                <div class="rank-divider"></div>
+                <div class="rank-stats">
+                    <span class="rank-wins" id="stat-wins">0W</span>
+                    <span class="stat-sep">|</span>
+                    <span class="rank-losses" id="stat-losses">0L</span>
+                    <span class="stat-sep">|</span>
+                    <span class="rank-wr" id="stat-wr">0% WR</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Street Background Texture -->
+        <div class="street-bg"></div>
+
+        <!-- Animated SVG Graffiti Doodles -->
+        <div class="doodle-layer">
+            <svg class="doodle-crown" viewBox="0 0 24 24">
+                <path d="M2 18L5 8L10 13L15 6L19 13L22 18H2Z" />
+            </svg>
+            <svg class="doodle-crosshair" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9" />
+                <line x1="12" y1="1" x2="12" y2="23" />
+                <line x1="1" y1="12" x2="23" y2="12" />
+            </svg>
+            <svg class="doodle-arrow" viewBox="0 0 50 30">
+                <path d="M5 15 Q 25 5, 40 15 M 30 8 L 42 15 L 32 22" />
+            </svg>
+            <div class="doodle-tag">★ 100% SKILL</div>
+        </div>
+
+        <!-- White Shine Sweep Effect -->
+        <div class="shine-sweep"></div>
+
+        <!-- CHAPA CHATO Brand Title -->
+        <div class="logo-wrapper">
+            <span class="logo-text">CHAPA CHATO</span>
+        </div>
+
+        <!-- Social Handle Badge -->
+        <div class="social-badge">
+            <div class="social-badge-content">
+                <div class="social-icons">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                    </svg>
+                    <svg viewBox="0 0 24 24">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                </div>
+                <span class="social-handle">@enzo_stevanatto</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mapeamento dos ícones da Wiki
+        const rankImages = {
+            "Radiant": "https://static.wikia.nocookie.net/valorant/images/1/1a/Radiant_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203621",
+            "Immortal 3": "https://static.wikia.nocookie.net/valorant/images/0/0b/Immortal_3_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203617",
+            "Immortal 2": "https://static.wikia.nocookie.net/valorant/images/2/21/Immortal_2_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203615",
+            "Immortal 1": "https://static.wikia.nocookie.net/valorant/images/a/a8/Immortal_1_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203613",
+            "Ascendant 3": "https://static.wikia.nocookie.net/valorant/images/5/53/Ascendant_3_Rank.png/revision/latest/scale-to-width-down/40?cb=20220616175519",
+            "Ascendant 2": "https://static.wikia.nocookie.net/valorant/images/1/1e/Ascendant_2_Rank.png/revision/latest/scale-to-width-down/40?cb=20220616175514",
+            "Ascendant 1": "https://static.wikia.nocookie.net/valorant/images/e/e5/Ascendant_1_Rank.png/revision/latest/scale-to-width-down/40?cb=20220616175506",
+            "Diamond 3": "https://static.wikia.nocookie.net/valorant/images/0/01/Diamond_3_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203611",
+            "Diamond 2": "https://static.wikia.nocookie.net/valorant/images/6/6a/Diamond_2_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203610",
+            "Diamond 1": "https://static.wikia.nocookie.net/valorant/images/a/ae/Diamond_1_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203609",
+            "Platinum 3": "https://static.wikia.nocookie.net/valorant/images/1/1b/Platinum_3_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203607",
+            "Platinum 2": "https://static.wikia.nocookie.net/valorant/images/5/5a/Platinum_2_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203606",
+            "Platinum 1": "https://static.wikia.nocookie.net/valorant/images/9/96/Platinum_1_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203419",
+            "Gold 3": "https://static.wikia.nocookie.net/valorant/images/2/27/Gold_3_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203417",
+            "Gold 2": "https://static.wikia.nocookie.net/valorant/images/0/02/Gold_2_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203415",
+            "Gold 1": "https://static.wikia.nocookie.net/valorant/images/6/65/Gold_1_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203413",
+            "Silver 3": "https://static.wikia.nocookie.net/valorant/images/d/d7/Silver_3_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203413",
+            "Silver 2": "https://static.wikia.nocookie.net/valorant/images/e/e9/Silver_2_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203410",
+            "Silver 1": "https://static.wikia.nocookie.net/valorant/images/8/8a/Silver_1_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203408",
+            "Bronze 3": "https://static.wikia.nocookie.net/valorant/images/a/ae/Bronze_3_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203313",
+            "Bronze 2": "https://static.wikia.nocookie.net/valorant/images/c/c7/Bronze_2_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203140",
+            "Bronze 1": "https://static.wikia.nocookie.net/valorant/images/b/bd/Bronze_1_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203119",
+            "Iron 3": "https://static.wikia.nocookie.net/valorant/images/7/79/Iron_3_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203101",
+            "Iron 2": "https://static.wikia.nocookie.net/valorant/images/b/bf/Iron_2_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203053",
+            "Iron 1": "https://static.wikia.nocookie.net/valorant/images/7/7c/Iron_1_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203005",
+            "Unranked": "https://static.wikia.nocookie.net/valorant/images/b/b2/TX_CompetitiveTier_Large_0.png/revision/latest/scale-to-width-down/40?cb=20200623203757"
+        };
+
+        const GAME_ENDPOINT = 'https://decapi.me/twitch/game/chapachato';
+        const MMR_ENDPOINT = 'https://vaccie.pythonanywhere.com/mmr/chapachato/Sem/na';
+        const HISTORY_ENDPOINT = 'https://vaccie.pythonanywhere.com/match_history/chapachato/Sem/na/pc';
+
+        // Lista completa de Proxies CORS públicos gratuitos (sem necessidade de cadastro/API key)
+        // Cada item possui um nome, o construtor da URL e o extrator do texto limpo
+        const CORS_PROXIES = [
+            {
+                nome: "Worker ao3ffee (JSONP/JSON)",
+                buildUrl: (target) => `https://wild-bonus-e3a8.ao3ffee.workers.dev/?callback=cb&url=${encodeURIComponent(target)}`,
+                extract: (raw) => {
+                    // Extrai o JSON de dentro de cb({"data":"..."})
+                    const match = raw.match(/^cb\((.*)\);?$/s);
+                    if (match) {
+                        const parsed = JSON.parse(match[1]);
+                        return parsed.data || parsed.contents || String(parsed);
+                    }
+                    return raw;
+                }
+            },
+            {
+                nome: "Worker gauravramyadav",
+                buildUrl: (target) => `https://ytapi.gauravramyadav.workers.dev/api/proxy?url=${encodeURIComponent(target)}`,
+                extract: (raw) => raw
+            },
+            {
+                nome: "CodeTabs",
+                buildUrl: (target) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(target)}`,
+                extract: (raw) => raw
+            },
+            {
+                nome: "AllOrigins Raw",
+                buildUrl: (target) => `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`,
+                extract: (raw) => raw
+            },
+            {
+                nome: "AllOrigins JSON",
+                buildUrl: (target) => `https://api.allorigins.win/get?url=${encodeURIComponent(target)}`,
+                extract: (raw) => {
+                    const parsed = JSON.parse(raw);
+                    if (!parsed.contents) throw new Error("AllOrigins sem conteúdo");
+                    return parsed.contents;
+                }
+            },
+            {
+                nome: "CorsProxy.io",
+                buildUrl: (target) => `https://corsproxy.io/?url=${encodeURIComponent(target)}`,
+                extract: (raw) => raw
+            },
+            {
+                nome: "CORS.lol",
+                buildUrl: (target) => `https://api.cors.lol/?url=${encodeURIComponent(target)}`,
+                extract: (raw) => raw
+            },
+            {
+                nome: "CORS.tools",
+                buildUrl: (target) => `https://cors.tools/proxy?url=${encodeURIComponent(target)}`,
+                extract: (raw) => raw
+            },
+            {
+                nome: "ThingProxy",
+                buildUrl: (target) => `https://thingproxy.freeboard.io/fetch/${target}`,
+                extract: (raw) => raw
+            },
+            {
+                nome: "CORS x2u",
+                buildUrl: (target) => `https://cors.x2u.in/${target}`,
+                extract: (raw) => raw
+            },
+            {
+                nome: "CorsProxy.org",
+                buildUrl: (target) => `https://corsproxy.org/?${encodeURIComponent(target)}`,
+                extract: (raw) => raw
+            },
+            {
+                nome: "WhateverOrigin",
+                buildUrl: (target) => `https://whateverorigin.org/get?url=${encodeURIComponent(target)}`,
+                extract: (raw) => {
+                    const parsed = JSON.parse(raw);
+                    if (!parsed.contents) throw new Error("WhateverOrigin vazio");
+                    return parsed.contents;
+                }
+            },
+            {
+                nome: "Cors.bridged.cc / YaCDN",
+                buildUrl: (target) => `https://yacdn.org/proxy/${target}`,
+                extract: (raw) => raw
+            },
+            {
+                nome: "Cors-Anywhere Heroku Demo",
+                buildUrl: (target) => `https://cors-anywhere.herokuapp.com/${target}`,
+                extract: (raw) => raw
+            }
+        ];
+
+        // Guarda o índice do último proxy que funcionou para priorizá-lo na próxima rodada
+        let ultimoProxyFuncional = 0;
+
+        async function fetchComFallback(targetUrl) {
+            // Adiciona um timestamp para evitar que o proxy entregue cache velho
+            const sep = targetUrl.includes('?') ? '&' : '?';
+            const urlSemCache = `${targetUrl}${sep}_t=${Date.now()}`;
+
+            // Reordena a lista colocando o último proxy que funcionou em primeiro lugar
+            const ordemTentativas = [
+                ...CORS_PROXIES.slice(ultimoProxyFuncional),
+                ...CORS_PROXIES.slice(0, ultimoProxyFuncional)
+            ];
+
+            for (let i = 0; i < ordemTentativas.length; i++) {
+                const proxy = ordemTentativas[i];
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 8000); // 8s por tentativa
+
+                try {
+                    const proxyUrl = proxy.buildUrl(urlSemCache);
+                    const res = await fetch(proxyUrl, {
+                        signal: controller.signal,
+                        cache: 'no-store'
+                    });
+
+                    if (!res.ok) {
+                        throw new Error(`HTTP ${res.status}`);
+                    }
+
+                    const rawText = await res.text();
+                    const cleanText = proxy.extract(rawText).trim();
+
+                    // Validação básica: garante que não veio vazio nem uma página HTML de erro do proxy
+                    if (!cleanText || cleanText.startsWith('<!DOCTYPE') || cleanText.startsWith('<html')) {
+                        throw new Error('Resposta HTML inválida do proxy');
+                    }
+
+                    // Salva o índice original deste proxy como preferencial
+                    ultimoProxyFuncional = CORS_PROXIES.findIndex(p => p.nome === proxy.nome);
+                    console.log(`[Proxy OK: ${proxy.nome}] ->`, cleanText);
+                    return cleanText;
+
+                } catch (erro) {
+                    console.warn(`[Proxy Falhou: ${proxy.nome}]`, erro.message);
+                } finally {
+                    clearTimeout(timeout);
+                }
+            }
+
+            throw new Error(`Todos os ${CORS_PROXIES.length} proxies falharam para: ${targetUrl}`);
+        }
+
+        const rankBadge = document.querySelector('.rank-top-badge');
+        let verificacaoEmAndamento = false;
+
+        async function updateOverlayData() {
+            if (verificacaoEmAndamento) return;
+            verificacaoEmAndamento = true;
+
+            try {
+                // 1. Consultar o jogo atual da live (DecAPI não precisa de CORS)
+                const gameRes = await fetch(`${GAME_ENDPOINT}?_t=${Date.now()}`, { cache: 'no-store' });
+                if (!gameRes.ok) throw new Error(`DecAPI HTTP ${gameRes.status}`);
+
+                const gameName = (await gameRes.text()).trim().toUpperCase();
+                const isValorant = gameName === 'VALORANT';
+
+                rankBadge.style.display = isValorant ? 'flex' : 'none';
+                console.log('[OBS] Jogo atual:', gameName, '| Rank visível:', isValorant);
+
+                if (!isValorant) return;
+
+                // 2. Atualizar Elo e título usando fallback de proxies CORS
+                try {
+                    const rawText = await fetchComFallback(MMR_ENDPOINT);
+                    const parts = rawText.split(',');
+                    const rankNameClean = parts[0].replace(/#\d+/, '').trim();
+
+                    if (rankNameClean) {
+                        document.getElementById('rank-title-text').textContent = rankNameClean.toUpperCase();
+                        if (rankImages[rankNameClean]) {
+                            document.getElementById('rank-icon-img').src = rankImages[rankNameClean];
+                        }
+                    }
+                } catch (err) {
+                    console.warn('Erro ao buscar MMR:', err.message);
+                }
+
+                // 3. Atualizar vitórias, derrotas e win rate usando fallback de proxies CORS
+                try {
+                    const rawHistory = await fetchComFallback(HISTORY_ENDPOINT);
+                    const winsMatch = rawHistory.match(/(\d+)W/i);
+                    const lossesMatch = rawHistory.match(/(\d+)L/i);
+                    const wrMatch = rawHistory.match(/([\d.]+)%\s*WR/i);
+
+                    if (winsMatch) document.getElementById('stat-wins').textContent = `${winsMatch[1]}W`;
+                    if (lossesMatch) document.getElementById('stat-losses').textContent = `${lossesMatch[1]}L`;
+                    if (wrMatch) document.getElementById('stat-wr').textContent = `${wrMatch[1]}% WR`;
+                } catch (err) {
+                    console.warn('Erro ao buscar histórico de partidas:', err.message);
+                }
+
+            } catch (err) {
+                rankBadge.style.display = 'none';
+                console.warn('Erro ao consultar o jogo na Twitch:', err.message);
+            } finally {
+                verificacaoEmAndamento = false;
+            }
+        }
+
+        // Verifica imediatamente ao carregar e depois a cada 60 segundos.
+        updateOverlayData();
+        setInterval(updateOverlayData, 60000);
+    </script>
+</body>
+</html>
