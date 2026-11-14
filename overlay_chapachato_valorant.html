@@ -413,34 +413,36 @@
 
     <script>
         // Mapeamento dos ícones da Wiki (também serve como lista oficial de ranks válidos)
-        const rankImages = {
-            "Radiant": "https://static.wikia.nocookie.net/valorant/images/1/1a/Radiant_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203621",
-            "Immortal 3": "https://static.wikia.nocookie.net/valorant/images/0/0b/Immortal_3_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203617",
-            "Immortal 2": "https://static.wikia.nocookie.net/valorant/images/2/21/Immortal_2_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203615",
-            "Immortal 1": "https://static.wikia.nocookie.net/valorant/images/a/a8/Immortal_1_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203613",
-            "Ascendant 3": "https://static.wikia.nocookie.net/valorant/images/5/53/Ascendant_3_Rank.png/revision/latest/scale-to-width-down/40?cb=20220616175519",
-            "Ascendant 2": "https://static.wikia.nocookie.net/valorant/images/1/1e/Ascendant_2_Rank.png/revision/latest/scale-to-width-down/40?cb=20220616175514",
-            "Ascendant 1": "https://static.wikia.nocookie.net/valorant/images/e/e5/Ascendant_1_Rank.png/revision/latest/scale-to-width-down/40?cb=20220616175506",
-            "Diamond 3": "https://static.wikia.nocookie.net/valorant/images/0/01/Diamond_3_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203611",
-            "Diamond 2": "https://static.wikia.nocookie.net/valorant/images/6/6a/Diamond_2_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203610",
-            "Diamond 1": "https://static.wikia.nocookie.net/valorant/images/a/ae/Diamond_1_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203609",
-            "Platinum 3": "https://static.wikia.nocookie.net/valorant/images/1/1b/Platinum_3_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203607",
-            "Platinum 2": "https://static.wikia.nocookie.net/valorant/images/5/5a/Platinum_2_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203606",
-            "Platinum 1": "https://static.wikia.nocookie.net/valorant/images/9/96/Platinum_1_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203419",
-            "Gold 3": "https://static.wikia.nocookie.net/valorant/images/2/27/Gold_3_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203417",
-            "Gold 2": "https://static.wikia.nocookie.net/valorant/images/0/02/Gold_2_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203415",
-            "Gold 1": "https://static.wikia.nocookie.net/valorant/images/6/65/Gold_1_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203413",
-            "Silver 3": "https://static.wikia.nocookie.net/valorant/images/d/d7/Silver_3_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203413",
-            "Silver 2": "https://static.wikia.nocookie.net/valorant/images/e/e9/Silver_2_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203410",
-            "Silver 1": "https://static.wikia.nocookie.net/valorant/images/8/8a/Silver_1_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203408",
-            "Bronze 3": "https://static.wikia.nocookie.net/valorant/images/a/ae/Bronze_3_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203313",
-            "Bronze 2": "https://static.wikia.nocookie.net/valorant/images/c/c7/Bronze_2_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203140",
-            "Bronze 1": "https://static.wikia.nocookie.net/valorant/images/b/bd/Bronze_1_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203119",
-            "Iron 3": "https://static.wikia.nocookie.net/valorant/images/7/79/Iron_3_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203101",
-            "Iron 2": "https://static.wikia.nocookie.net/valorant/images/b/bf/Iron_2_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203053",
-            "Iron 1": "https://static.wikia.nocookie.net/valorant/images/7/7c/Iron_1_Rank.png/revision/latest/scale-to-width-down/40?cb=20200623203005",
-            "Unranked": "https://static.wikia.nocookie.net/valorant/images/b/b2/TX_CompetitiveTier_Large_0.png/revision/latest/scale-to-width-down/40?cb=20200623203757"
-        };
+        const TIER_UUID = "03621f52-342b-cf4e-4f86-9350a49c6d04";
+
+		const rankImages = {
+			"Radiant": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/27/smallicon.png`,
+			"Immortal 3": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/26/smallicon.png`,
+			"Immortal 2": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/25/smallicon.png`,
+			"Immortal 1": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/24/smallicon.png`,
+			"Ascendant 3": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/23/smallicon.png`,
+			"Ascendant 2": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/22/smallicon.png`,
+			"Ascendant 1": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/21/smallicon.png`,
+			"Diamond 3": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/20/smallicon.png`,
+			"Diamond 2": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/19/smallicon.png`,
+			"Diamond 1": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/18/smallicon.png`,
+			"Platinum 3": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/17/smallicon.png`,
+			"Platinum 2": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/16/smallicon.png`,
+			"Platinum 1": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/15/smallicon.png`,
+			"Gold 3": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/14/smallicon.png`,
+			"Gold 2": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/13/smallicon.png`,
+			"Gold 1": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/12/smallicon.png`,
+			"Silver 3": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/11/smallicon.png`,
+			"Silver 2": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/10/smallicon.png`,
+			"Silver 1": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/9/smallicon.png`,
+			"Bronze 3": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/8/smallicon.png`,
+			"Bronze 2": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/7/smallicon.png`,
+			"Bronze 1": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/6/smallicon.png`,
+			"Iron 3": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/5/smallicon.png`,
+			"Iron 2": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/4/smallicon.png`,
+			"Iron 1": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/3/smallicon.png`,
+			"Unranked": `https://media.valorant-api.com/competitivetiers/${TIER_UUID}/0/smallicon.png`
+		};
 
         const GAME_ENDPOINT = 'https://decapi.me/twitch/game/chapachato';
         const MMR_ENDPOINT = 'https://vaccie.pythonanywhere.com/mmr/chapachato/Sem/na';
